@@ -10,8 +10,9 @@ import java.util.Map;
 
 public class ExitServiceImpl implements ExitService, UpdateParkingSpot {
     @Override
-    public Long getParkingFee(ParkingTicket parkingTicket) {
-        return Duration.between(parkingTicket.getEntryTime(), Instant.now()).toHours();
+    public Double getParkingFee(ParkingTicket parkingTicket) {
+        int vehicleTypeFee = parkingTicket.getParkingSpot().getVehicleType().getPrice();
+        return Double.valueOf(Duration.between(parkingTicket.getEntryTime(), Instant.now()).toMillis() * vehicleTypeFee);
     }
 
     @Override
