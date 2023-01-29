@@ -17,8 +17,8 @@ import java.util.Map;
 public class ParkingLotApplication {
     private List<Gate> entryGateList;
     private List<Gate> exitGateList;
-    private Map<VehicleType, Map<String, ParkingSpot>> vehicleTypeParkingSpotMap;
-//    in case if we have ot find the nearest parking spot to entry gate , take data structure as :
+    private Map<VehicleType, Map<String, ParkingSpot>> vehicleTypeParkingSpotMap;  // key - parkingId
+//    in case if we have to find the nearest parking spot to entry gate , take data structure as :
 //  private Map<VehicleType, List<ParkingSpot>> vehicleTypeParkingList;
 
     private EntryService entryService;
@@ -37,15 +37,20 @@ public class ParkingLotApplication {
     }
 
     private void fillAvailableParkingSpace() {
-        Map<VehicleType, Integer> availableParkingSpace = new HashMap<>();
+        availableParkingSpace = new HashMap<>();
         vehicleTypeParkingSpotMap.forEach((vehicleType, parkingSpotMap) -> {
             availableParkingSpace.put(vehicleType, parkingSpotMap.size());
         });
     }
 
-    public static ParkingLotApplication getParkingLotApplicationInstance(List<Gate> entryGateList, List<Gate> exitGateList, Map<VehicleType, Map<String, ParkingSpot>> vehicleTypeParkingSpotMap, EntryService entryService, ExitService exitService) {
-        if (instance == null)
-            return new ParkingLotApplication(entryGateList, exitGateList, vehicleTypeParkingSpotMap, entryService, exitService);
+    public static ParkingLotApplication getParkingLotApplicationInstance(List<Gate> entryGateList, List<Gate> exitGateList, Map<VehicleType,
+            Map<String, ParkingSpot>> vehicleTypeParkingSpotMap, EntryService entryService, ExitService exitService) {
+        if (instance == null) {
+            synchronized (ParkingLotApplication.class) {
+                if (instance == null)
+                    instance = new ParkingLotApplication(entryGateList, exitGateList, vehicleTypeParkingSpotMap, entryService, exitService);
+            }
+        }
         return instance;
     }
 
@@ -57,10 +62,12 @@ public class ParkingLotApplication {
         return parkingTicket;
     }
 
-    public ParkingTicket onVehicleExit(ParkingTicket parkingTicket, PaymentType paymentType) {
-        Long parkingFee = exitService.getParkingFee(parkingTicket);
+    public ParkingTicket onVehicleExit(ParkingTicket parkingTicket, PaymentType paymentType) throws CustomException {
+        Double parkingFee = exitService.getParkingFee(parkingTicket);
         PaymentStrategy paymentStrategy = PaymentStrategyFactory.getPaymentStrategy(paymentType);
-        paymentStrategy.makePayment(parkingFee);
+        PaymentStatus paymentStatus = paymentStrategy.makePayment(parkingFee);
+        if (paymentStatus.equals(PaymentStatus.FAILED))
+            throw new CustomException("Payment Failed, try with different method");
         exitService.updateParkingSpot(parkingTicket.getParkingSpot(), availableParkingSpace, vehicleTypeParkingSpotMap);
         return parkingTicket;
     }
