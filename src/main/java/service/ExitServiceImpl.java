@@ -12,7 +12,7 @@ public class ExitServiceImpl implements ExitService, UpdateParkingSpot {
     @Override
     public Double getParkingFee(ParkingTicket parkingTicket) {
         int vehicleTypeFee = parkingTicket.getParkingSpot().getVehicleType().getPrice();
-        return Double.valueOf(Duration.between(parkingTicket.getEntryTime(), Instant.now()).toMillis() * vehicleTypeFee);
+        return (double) (Duration.between(parkingTicket.getEntryTime(), Instant.now()).toMillis() * vehicleTypeFee);
     }
 
     @Override
